@@ -1,0 +1,142 @@
+Home.html
+
+<!doctype html>
+<html>
+<head>
+    <title>Home</title>
+</head>
+<body>
+    <h1>Welcome to the Home Page</h1>
+    <p><a href="/login">Login</a> or <a href="/register">Register</a></p>
+</body>
+</html>
+
+
+login.html
+
+<!doctype html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form method="post">
+        Username: <input type="text" name="username"><br>
+        Password: <input type="password" name="password"><br>
+        <input type="submit" value="Login">
+    </form>
+    <p>Don't have an account? <a href="/register">Register here</a></p>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
+
+
+register.html
+
+<!doctype html>
+<html>
+<head>
+    <title>Register</title>
+</head>
+<body>
+    <h1>Register</h1>
+    <form method="post">
+        Username: <input type="text" name="username"><br>
+        Password: <input type="password" name="password"><br>
+        <input type="submit" value="Register">
+    </form>
+    <p>Already have an account? <a href="/login">Login here</a></p>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
+
+
+secure.html
+
+<!doctype html>
+<html>
+<head>
+    <title>Secure Page</title>
+</head>
+<body>
+    <h1>Welcome {{ username }}</h1>
+    <p>This is a secure page.</p>
+    <p><a href="/logout">Logout</a></p>
+</body>
+</html>
+
+
+
+app.py
+
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+
+app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # Needed to use sessions
+
+# In-memory storage for users
+users = {}
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username in users and users[username] == password:
+            session['username'] = username
+            return redirect(url_for('secure'))
+        else:
+            flash('Invalid credentials!')
+            return redirect(url_for('login'))
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username in users:
+            flash('Username already exists!')
+            return redirect(url_for('register'))
+        users[username] = password
+        flash('Registration successful! You can now login.')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/secure')
+def secure():
+    if 'username' in session:
+        return render_template('secure.html', username=session['username'])
+    else:
+        flash('You need to login first.')
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash('You have been logged out.')
+    return redirect(url_for('home'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
